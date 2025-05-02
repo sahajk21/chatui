@@ -11,7 +11,7 @@ import Image from "next/image";
 
 const MODEL_OPTIONS = [
 	{ value: "gpt-4o", label: "GPT-4o" },
-	{ value: "o3-mini", label: "O3-Mini" },
+	{ value: "o4-mini", label: "O4-Mini" },
 ];
 
 const ChatArea = memo(function ChatArea({

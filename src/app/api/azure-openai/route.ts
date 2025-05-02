@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
 		stream: true,
 	};
 
-	if (model === "o3-mini") {
+	if (model === "o4-mini") {
 		body.max_completion_tokens = 16384;
 	} else {
 		body.max_tokens = 16384;
