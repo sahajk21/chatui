@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 export default function SystemPromptModal({ show, onClose, value, setValue, chatUtils, setShowModal, chats, setChats, currentChatId, isChatPrompt }: any) {
-	if (!show) return null;
-
 	const [localValue, setLocalValue] = useState(value);
 
 	useEffect(() => {
@@ -28,24 +27,26 @@ export default function SystemPromptModal({ show, onClose, value, setValue, chat
 	}
 
 	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-			<div className="bg-background rounded-lg shadow-lg p-6 w-full max-w-md">
-				<h2 className="font-bold text-lg mb-2">{isChatPrompt ? "Edit Chat System Prompt" : "Edit Overall System Prompt"}</h2>
+		<Dialog open={show} onOpenChange={onClose}>
+			<DialogContent>
+				<DialogHeader>
+					<DialogTitle>{isChatPrompt ? "Edit Chat System Prompt" : "Edit Overall System Prompt"}</DialogTitle>
+				</DialogHeader>
 				<Textarea
-					className="w-full min-h-[80px] border rounded p-2 mb-4"
+					className="w-full min-h-[80px] mb-4"
 					value={localValue}
 					onChange={(e) => setLocalValue(e.target.value)}
 					placeholder={isChatPrompt ? "Enter chat-specific system prompt..." : "Enter overall system prompt..."}
 				/>
-				<div className="flex gap-2 justify-end">
+				<DialogFooter>
 					<Button variant="ghost" onClick={onClose}>
 						Cancel
 					</Button>
 					<Button variant="default" onClick={handleSave}>
 						Save
 					</Button>
-				</div>
-			</div>
-		</div>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 	);
 }

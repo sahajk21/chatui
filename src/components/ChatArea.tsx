@@ -2,22 +2,39 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ProseMarkdown from "@/components/ProseMarkdown";
-import { useRef, useCallback, memo, useState } from "react";
-import { ArrowUp, UploadIcon, RotateCcw, Pencil, Trash2, Square, FileText, Plus } from "lucide-react";
-import { v4 as uuidv4 } from "uuid";
+import { memo, useState } from "react";
+import { Trash2, FileText, Plus } from "lucide-react";
 import SystemPromptModal from "@/components/SystemPromptModal";
 import ChatInput from "@/components/ChatInput";
+import type { Chat } from "@/lib/types";
+import Image from "next/image";
 
 const MODEL_OPTIONS = [
 	{ value: "gpt-4o", label: "GPT-4o" },
 	{ value: "o3-mini", label: "O3-Mini" },
 ];
 
-const ChatArea = memo(function ChatArea({ currentChat, chats, setChats, currentChatId, setCurrentChatId, overallSystemPrompt, scrollRef, chatUtils }: any) {
+const ChatArea = memo(function ChatArea({
+	currentChat,
+	chats,
+	setChats,
+	currentChatId,
+	overallSystemPrompt,
+	scrollRef,
+	chatUtils,
+}: {
+	currentChat: Chat | undefined;
+	chats: Chat[];
+	setChats: (chats: Chat[]) => void;
+	currentChatId: string | null;
+	overallSystemPrompt: string;
+	scrollRef: React.RefObject<HTMLDivElement | null> | null;
+	chatUtils: any;
+}) {
 	const [model, setModel] = useState(MODEL_OPTIONS[0].value);
 	const [showChatPromptModal, setShowChatPromptModal] = useState(false);
 	const [chatPromptDraft, setChatPromptDraft] = useState<string>("");
-	const [loading, setLoading] = useState(false);
+	const [loading] = useState(false);
 
 	function truncateWithEllipsis(text: string, maxLength: number) {
 		return text && text.length > maxLength ? text.slice(0, maxLength) + "..." : text || "";
@@ -31,7 +48,7 @@ const ChatArea = memo(function ChatArea({ currentChat, chats, setChats, currentC
 	function handleModelChange(value: string) {
 		setModel(value);
 		if (currentChatId) {
-			const idx = chats.findIndex((c: any) => c.id === currentChatId);
+			const idx = chats.findIndex((c) => c.id === currentChatId);
 			if (idx !== -1) {
 				const updated = [...chats];
 				updated[idx].model = value;
@@ -43,7 +60,7 @@ const ChatArea = memo(function ChatArea({ currentChat, chats, setChats, currentC
 
 	function handleDeleteMessage(idx: number) {
 		if (!currentChatId) return;
-		const chatIdx = chats.findIndex((c: any) => c.id === currentChatId);
+		const chatIdx = chats.findIndex((c) => c.id === currentChatId);
 		if (chatIdx === -1) return;
 
 		const chat = chats[chatIdx];
@@ -92,16 +109,16 @@ const ChatArea = memo(function ChatArea({ currentChat, chats, setChats, currentC
 					<div className="flex-1 flex flex-col min-h-0">
 						<ScrollArea className="flex-1 p-4 min-h-0" style={{ minHeight: 0 }} ref={scrollRef}>
 							<div className="flex flex-col gap-4 h-full justify-end">
-								{currentChat?.messages.map((msg: any, idx: number) =>
+								{currentChat?.messages.map((msg, idx) =>
 									msg.role === "user" ? (
 										<div key={msg.id} className="self-end w-full flex flex-col items-end group">
 											<div className="bg-muted text-foreground rounded-2xl px-4 py-3 text-base break-words inline-block max-w-[75%]">
 												{msg.content}
 												{msg.files && msg.files.length > 0 && (
 													<div className="mt-2 flex gap-2 flex-wrap">
-														{msg.files.map((file: any, fidx: number) =>
+														{msg.files.map((file, fidx) =>
 															file.type.startsWith("image/") ? (
-																<img key={fidx} src={file.url} alt={file.name} className="w-24 h-24 object-cover rounded" />
+																<Image key={fidx} src={file.url} alt={file.name} width={96} height={96} className="w-24 h-24 object-cover rounded" />
 															) : (
 																<a key={fidx} href={file.url} download={file.name} className="underline text-xs text-white">
 																	{file.name}
@@ -132,9 +149,9 @@ const ChatArea = memo(function ChatArea({ currentChat, chats, setChats, currentC
 												<ProseMarkdown>{msg.content}</ProseMarkdown>
 												{msg.files && msg.files.length > 0 && (
 													<div className="mt-2 flex gap-2 flex-wrap">
-														{msg.files.map((file: any, idx: number) =>
+														{msg.files.map((file, idx) =>
 															file.type.startsWith("image/") ? (
-																<img key={idx} src={file.url} alt={file.name} className="w-24 h-24 object-cover rounded" />
+																<Image key={idx} src={file.url} alt={file.name} width={96} height={96} className="w-24 h-24 object-cover rounded" />
 															) : (
 																<a key={idx} href={file.url} download={file.name} className="underline text-xs">
 																	{file.name}
@@ -155,7 +172,6 @@ const ChatArea = memo(function ChatArea({ currentChat, chats, setChats, currentC
 							setChats={setChats}
 							currentChatId={currentChatId}
 							model={model}
-							setModel={setModel}
 							overallSystemPrompt={overallSystemPrompt}
 							chatUtils={chatUtils}
 						/>

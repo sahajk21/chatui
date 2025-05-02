@@ -1,39 +1,12 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { v4 as uuidv4 } from "uuid";
-import Sidebar from "@/components/Sidebar";
 import ChatArea from "@/components/ChatArea";
 import SystemPromptModal from "@/components/SystemPromptModal";
-
-type Message = {
-	id: string;
-	role: "user" | "assistant";
-	content: string;
-	files?: FilePreview[];
-};
-
-type FilePreview = {
-	name: string;
-	url: string;
-	type: string;
-};
-
-type Chat = {
-	id: string;
-	title: string;
-	messages: Message[];
-	createdAt: number;
-	model: string;
-	systemPrompt?: string;
-};
-
-const MODEL_OPTIONS = [
-	{ value: "gpt-4o", label: "GPT-4o" },
-	{ value: "o3-mini", label: "O3-Mini" },
-];
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
+import type { Chat } from "@/lib/types";
 
 export default function Home() {
-	const [sidebarOpen, setSidebarOpen] = useState(false);
 	const [chats, setChats] = useState<Chat[]>([]);
 	const [currentChatId, setCurrentChatId] = useState<string | null>(null);
 	const scrollRef = useRef<HTMLDivElement>(null);
@@ -60,38 +33,37 @@ export default function Home() {
 	const currentChat = chats.find((c) => c.id === currentChatId);
 
 	return (
-		<div className="flex h-screen">
-			<Sidebar
-				sidebarOpen={sidebarOpen}
-				setSidebarOpen={setSidebarOpen}
+		<SidebarProvider>
+			<AppSidebar
 				chats={chats}
 				currentChatId={currentChatId}
 				setChats={setChats}
 				setCurrentChatId={setCurrentChatId}
-				overallSystemPrompt={overallSystemPrompt}
 				setShowOverallPromptModal={setShowOverallPromptModal}
 				chatUtils={chatUtils}
 			/>
-			<ChatArea
-				currentChat={currentChat}
-				chats={chats}
-				setChats={setChats}
-				currentChatId={currentChatId}
-				setCurrentChatId={setCurrentChatId}
-				overallSystemPrompt={overallSystemPrompt}
-				scrollRef={scrollRef}
-				chatUtils={chatUtils}
-			/>
-			<SystemPromptModal
-				show={showOverallPromptModal}
-				onClose={() => setShowOverallPromptModal(false)}
-				value={overallSystemPrompt}
-				setValue={setOverallSystemPromptState}
-				chatUtils={chatUtils}
-				setShowModal={setShowOverallPromptModal}
-				isChatPrompt={false}
-			/>
-		</div>
+			<SidebarTrigger />
+			<main className="flex h-screen flex-1 flex flex-col">
+				<ChatArea
+					currentChat={currentChat}
+					chats={chats}
+					setChats={setChats}
+					currentChatId={currentChatId}
+					overallSystemPrompt={overallSystemPrompt}
+					scrollRef={scrollRef}
+					chatUtils={chatUtils}
+				/>
+				<SystemPromptModal
+					show={showOverallPromptModal}
+					onClose={() => setShowOverallPromptModal(false)}
+					value={overallSystemPrompt}
+					setValue={setOverallSystemPromptState}
+					chatUtils={chatUtils}
+					setShowModal={setShowOverallPromptModal}
+					isChatPrompt={false}
+				/>
+			</main>
+		</SidebarProvider>
 	);
 }
 

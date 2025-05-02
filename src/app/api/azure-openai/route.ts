@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 
+type ChatFile = { name: string; type: string; data: string };
+type ChatMessage = {
+	role: string;
+	content: string;
+	files?: { name: string; type: string }[];
+};
+
 export async function POST(req: NextRequest) {
-	let messages: any[] = [];
+	let messages: ChatMessage[] = [];
 	let model: string = "";
-	let files: { [key: string]: { name: string; type: string; data: string } } = {};
+	const files: { [key: string]: ChatFile } = {};
 
 	const contentType = req.headers.get("content-type") || "";
 	if (contentType.startsWith("multipart/form-data")) {
 		const formData = await req.formData();
-		messages = JSON.parse(formData.get("messages") as string);
+		messages = JSON.parse(formData.get("messages") as string) as ChatMessage[];
 		model = formData.get("model") as string;
 
 		for (const [key, value] of formData.entries()) {
@@ -25,17 +32,17 @@ export async function POST(req: NextRequest) {
 		}
 	} else {
 		const body = await req.json();
-		messages = body.messages;
+		messages = body.messages as ChatMessage[];
 		model = body.model;
 	}
 
 	const endpoint = process.env.AZURE_OPENAI_ENDPOINT!;
 	const apiKey = process.env.AZURE_OPENAI_KEY!;
 	const deployment = model;
-	const mappedMessages = messages.map((m: any) => {
-		let contentArr: any[] = [];
+	const mappedMessages = messages.map((m: ChatMessage) => {
+		const contentArr: { type: string; text?: string; image_url?: { url: string } }[] = [];
 		if (m.files && m.files.length > 0) {
-			m.files.forEach((f: any, idx: number) => {
+			m.files.forEach((f: { name: string; type: string }, idx: number) => {
 				if (f.type.startsWith("image/")) {
 					const fileKey = `file_${f.name}_${idx}`;
 					const fileData = files[fileKey];
@@ -64,7 +71,7 @@ export async function POST(req: NextRequest) {
 
 	console.log("Mapped messages:", JSON.stringify(mappedMessages, null, 2));
 
-	const body: any = {
+	const body: Record<string, unknown> = {
 		messages: mappedMessages,
 		stream: true,
 	};
@@ -100,7 +107,7 @@ export async function POST(req: NextRequest) {
 					const { done, value } = await reader.read();
 					if (done) break;
 					buffer += decoder.decode(value, { stream: true });
-					let lines = buffer.split("\n");
+					const lines = buffer.split("\n");
 					buffer = lines.pop() || "";
 					for (const line of lines) {
 						const trimmed = line.trim();
@@ -116,7 +123,7 @@ export async function POST(req: NextRequest) {
 							if (typeof delta === "string") {
 								controller.enqueue(new TextEncoder().encode(delta));
 							}
-						} catch (e) {
+						} catch {
 							// ignore malformed lines
 						}
 					}

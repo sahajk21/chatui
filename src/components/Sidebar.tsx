@@ -6,7 +6,51 @@ import { cn } from "@/lib/utils";
 import ChatDropdown from "@/components/ChatDropdown";
 import { v4 as uuidv4 } from "uuid";
 
-export default function Sidebar({ sidebarOpen, setSidebarOpen, chats, currentChatId, setChats, setCurrentChatId, overallSystemPrompt, setShowOverallPromptModal, chatUtils }: any) {
+type FilePreview = {
+	name: string;
+	url: string;
+	type: string;
+};
+
+type Message = {
+	id: string;
+	role: "user" | "assistant" | "system";
+	content: string;
+	files?: FilePreview[];
+};
+
+type Chat = {
+	id: string;
+	title: string;
+	messages: Message[];
+	createdAt: number;
+	model: string;
+	systemPrompt?: string;
+};
+
+type SidebarProps = {
+	sidebarOpen: boolean;
+	setSidebarOpen: (open: boolean) => void;
+	chats: Chat[];
+	currentChatId: string | null;
+	setChats: (chats: Chat[]) => void;
+	setCurrentChatId: (id: string | null) => void;
+	overallSystemPrompt: string;
+	setShowOverallPromptModal: (show: boolean) => void;
+	chatUtils: any; // Replace with a specific type if available
+};
+
+export default function Sidebar({
+	sidebarOpen,
+	setSidebarOpen,
+	chats,
+	currentChatId,
+	setChats,
+	setCurrentChatId,
+	overallSystemPrompt,
+	setShowOverallPromptModal,
+	chatUtils,
+}: SidebarProps) {
 	function truncateWithEllipsis(text: string, maxLength: number) {
 		if (!text) return "";
 		return text.length > maxLength ? text.slice(0, maxLength) + "..." : text;
@@ -18,7 +62,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, chats, currentCha
 	}
 
 	function handleDeleteChat(id: string) {
-		const updated = chats.filter((c: any) => c.id !== id);
+		const updated = chats.filter((c) => c.id !== id);
 		setChats(updated);
 		if (currentChatId === id && updated.length > 0) setCurrentChatId(updated[0].id);
 		else if (updated.length === 0) setCurrentChatId(null);
@@ -26,7 +70,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, chats, currentCha
 	}
 
 	function handleRenameChat(id: string) {
-		const chatIdx = chats.findIndex((c: any) => c.id === id);
+		const chatIdx = chats.findIndex((c) => c.id === id);
 		if (chatIdx === -1) return;
 		const currentTitle = chats[chatIdx].title;
 		const newTitle = window.prompt("Rename chat", currentTitle);
@@ -39,7 +83,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, chats, currentCha
 	}
 
 	function handleNewChat() {
-		const newChat = {
+		const newChat: Chat = {
 			id: uuidv4(),
 			title: "New Chat",
 			messages: [],
@@ -82,7 +126,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, chats, currentCha
 						</div>
 						<ScrollArea className="flex-1">
 							<ul>
-								{chats.map((chat: any) => (
+								{chats.map((chat) => (
 									<li key={chat.id} className={cn("flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-muted", currentChatId === chat.id && "bg-muted")}>
 										<span onClick={() => handleSelectChat(chat.id)} className="truncate max-w-[120px] flex items-center gap-1">
 											{chat.title}
@@ -128,7 +172,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, chats, currentCha
 				</div>
 				<ScrollArea className="flex-1">
 					<ul>
-						{chats.map((chat: any) => (
+						{chats.map((chat) => (
 							<li key={chat.id} className={cn("flex items-center justify-between px-4 py-2 cursor-pointer hover:bg-muted", currentChatId === chat.id && "bg-muted")}>
 								<span onClick={() => handleSelectChat(chat.id)} className="truncate max-w-[120px] flex items-center gap-1">
 									{chat.title}
