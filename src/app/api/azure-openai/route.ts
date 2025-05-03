@@ -69,8 +69,6 @@ export async function POST(req: NextRequest) {
 		return { role: m.role, content: contentArr };
 	});
 
-	console.log("Mapped messages:", JSON.stringify(mappedMessages, null, 2));
-
 	const body: Record<string, unknown> = {
 		messages: mappedMessages,
 		stream: true,
