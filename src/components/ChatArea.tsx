@@ -9,6 +9,7 @@ import ChatInput from "@/components/ChatInput";
 import type { Chat, Message } from "@/lib/types";
 import { v4 as uuidv4 } from "uuid";
 import Image from "next/image";
+import React from "react";
 
 const MODEL_OPTIONS = [
 	{ value: "gpt-4o", label: "GPT-4o" },
@@ -26,7 +27,7 @@ const ChatArea = memo(function ChatArea({
 }: {
 	currentChat: Chat | undefined;
 	chats: Chat[];
-	setChats: (chats: Chat[]) => void;
+	setChats: React.Dispatch<React.SetStateAction<Chat[]>>;
 	currentChatId: string | null;
 	overallSystemPrompt: string;
 	scrollRef: React.RefObject<HTMLDivElement | null> | null;
