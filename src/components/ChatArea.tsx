@@ -2,12 +2,14 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ProseMarkdown from "@/components/ProseMarkdown";
-import { memo, useState } from "react";
-import { Trash2, FileText, Plus } from "lucide-react";
+import { memo, useState, useRef } from "react";
+import { Trash2, FileText, Plus, RotateCcw } from "lucide-react";
 import SystemPromptModal from "@/components/SystemPromptModal";
 import ChatInput from "@/components/ChatInput";
-import type { Chat } from "@/lib/types";
+import type { Chat, Message } from "@/lib/types";
+import { v4 as uuidv4 } from "uuid";
 import Image from "next/image";
+import React from "react";
 
 const MODEL_OPTIONS = [
 	{ value: "gpt-4o", label: "GPT-4o" },
@@ -25,7 +27,7 @@ const ChatArea = memo(function ChatArea({
 }: {
 	currentChat: Chat | undefined;
 	chats: Chat[];
-	setChats: (chats: Chat[]) => void;
+	setChats: React.Dispatch<React.SetStateAction<Chat[]>>;
 	currentChatId: string | null;
 	overallSystemPrompt: string;
 	scrollRef: React.RefObject<HTMLDivElement | null> | null;
@@ -34,7 +36,8 @@ const ChatArea = memo(function ChatArea({
 	const [model, setModel] = useState(MODEL_OPTIONS[0].value);
 	const [showChatPromptModal, setShowChatPromptModal] = useState(false);
 	const [chatPromptDraft, setChatPromptDraft] = useState<string>("");
-	const [loading] = useState(false);
+	const [loading, setLoading] = useState(false);
+	const abortControllerRef = useRef<AbortController | null>(null);
 
 	function truncateWithEllipsis(text: string, maxLength: number) {
 		return text && text.length > maxLength ? text.slice(0, maxLength) + "..." : text || "";
@@ -73,6 +76,130 @@ const ChatArea = memo(function ChatArea({
 		updatedChats[chatIdx] = { ...chat, messages: msgs };
 		setChats(updatedChats);
 		chatUtils.saveChats(updatedChats);
+	}
+
+	async function handleRegenerateMessage(idx: number) {
+		if (!currentChatId || loading) return;
+		const chatIdx = chats.findIndex((c) => c.id === currentChatId);
+		if (chatIdx === -1) return;
+
+		const chat = chats[chatIdx];
+		// Remove the AI message at idx and any subsequent messages
+		const messagesUpToPoint = chat.messages.slice(0, idx);
+		
+		// Set up abort controller
+		abortControllerRef.current = new AbortController();
+		setLoading(true);
+
+		let messagesToSend = [...messagesUpToPoint];
+
+		// Add system prompts like in ChatInput
+		let combinedSystemPrompt = "";
+		if (overallSystemPrompt && currentChat?.systemPrompt) {
+			combinedSystemPrompt = overallSystemPrompt.trim() + "\n" + currentChat.systemPrompt.trim();
+		} else if (overallSystemPrompt) {
+			combinedSystemPrompt = overallSystemPrompt.trim();
+		} else if (currentChat?.systemPrompt) {
+			combinedSystemPrompt = currentChat.systemPrompt.trim();
+		}
+		if (combinedSystemPrompt) {
+			if (!(messagesToSend.length > 0 && messagesToSend[0].role === "system")) {
+				messagesToSend = [
+					{
+						id: "system-prompt",
+						role: "system" as const,
+						content: combinedSystemPrompt,
+					},
+					...messagesToSend,
+				];
+			}
+		}
+
+		try {
+			// Update chat with truncated messages before making API call
+			const updatedChats = [...chats];
+			updatedChats[chatIdx] = { ...chat, messages: messagesUpToPoint };
+			setChats(updatedChats);
+			chatUtils.saveChats(updatedChats);
+
+			// Make API call
+			const res = await fetch("/api/azure-openai", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					messages: messagesToSend,
+					model: chat.model || model,
+				}),
+				signal: abortControllerRef.current?.signal,
+			});
+
+			if (!res.ok || !res.body) {
+				setLoading(false);
+				return;
+			}
+
+			// Handle streaming response
+			const reader = res.body.getReader();
+			const decoder = new TextDecoder();
+			let done = false;
+			const responseMsg: Message = {
+				id: uuidv4(),
+				role: "assistant",
+				content: "",
+				files: [],
+			};
+
+			while (!done) {
+				const { value, done: doneReading } = await reader.read();
+				done = doneReading;
+				if (value) {
+					const chunk = decoder.decode(value);
+					responseMsg.content += chunk;
+					// Update with current chats state, not the original one
+					setChats(currentChats => {
+						const updated = [...currentChats];
+						const currentIdx = updated.findIndex((c) => c.id === currentChatId);
+						if (currentIdx !== -1) {
+							const currentChatData = { ...updated[currentIdx] };
+							const msgs = [...currentChatData.messages];
+							if (msgs[msgs.length - 1]?.role === "assistant") {
+								msgs[msgs.length - 1].content = responseMsg.content;
+							} else {
+								msgs.push({ ...responseMsg });
+							}
+							currentChatData.messages = msgs;
+							updated[currentIdx] = currentChatData;
+						}
+						return updated;
+					});
+				}
+			}
+
+			// Save final result
+			setChats(currentChats => {
+				const finalChats = [...currentChats];
+				const finalIdx = finalChats.findIndex((c) => c.id === currentChatId);
+				if (finalIdx !== -1) {
+					const finalChat = { ...finalChats[finalIdx] };
+					const msgs = [...finalChat.messages];
+					if (msgs[msgs.length - 1]?.role === "assistant") {
+						msgs[msgs.length - 1].content = responseMsg.content;
+					} else {
+						msgs.push({ ...responseMsg });
+					}
+					finalChat.messages = msgs;
+					finalChats[finalIdx] = finalChat;
+					chatUtils.saveChats(finalChats);
+				}
+				return finalChats;
+			});
+		} catch (error) {
+			if (error instanceof Error && error.name !== 'AbortError') {
+				console.error('Regenerate error:', error);
+			}
+		} finally {
+			setLoading(false);
+		}
 	}
 
 	return (
@@ -144,7 +271,7 @@ const ChatArea = memo(function ChatArea({
 											</div>
 										</div>
 									) : (
-										<div key={msg.id} className="self-start w-full flex">
+										<div key={msg.id} className="self-start w-full flex flex-col group">
 											<div className="px-0 py-0 text-base break-words inline-block w-full" style={{ background: "none" }}>
 												<ProseMarkdown>{msg.content}</ProseMarkdown>
 												{msg.files && msg.files.length > 0 && (
@@ -160,6 +287,20 @@ const ChatArea = memo(function ChatArea({
 														)}
 													</div>
 												)}
+											</div>
+											<div className="flex gap-0.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+												<Button
+													type="button"
+													variant="ghost"
+													size="sm"
+													onClick={() => handleRegenerateMessage(idx)}
+													title="Regenerate this response"
+													disabled={loading || !currentChatId}
+													aria-label="Regenerate"
+													className="cursor-pointer"
+												>
+													<RotateCcw className="size-4 mr-1" />
+												</Button>
 											</div>
 										</div>
 									)
