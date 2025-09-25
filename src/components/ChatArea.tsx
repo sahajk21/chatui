@@ -255,7 +255,7 @@ const ChatArea = memo(function ChatArea({
 													</div>
 												)}
 											</div>
-											<div className="flex gap-0.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+											<div className="flex gap-0.5 mt-1">
 												<Button
 													type="button"
 													variant="ghost"
@@ -288,7 +288,7 @@ const ChatArea = memo(function ChatArea({
 													</div>
 												)}
 											</div>
-											<div className="flex gap-0.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+											<div className="flex gap-0.5 mt-1">
 												<Button
 													type="button"
 													variant="ghost"
