@@ -71,17 +71,20 @@ export async function POST(req: NextRequest) {
 
 	const body: Record<string, unknown> = {
 		messages: mappedMessages,
-		stream: true,
+		stream: true
 	};
 
-	if (model === "o4-mini") {
-		body.max_completion_tokens = 16384;
-	} else {
-		body.max_tokens = 16384;
+	if (model === "gpt-4o") {
+        body.max_tokens = 16384;
 		body.temperature = 0.7;
+	} else {
+		body.max_completion_tokens = 16384;
+        if (model === "gpt-5") {
+            body.reasoning_effort = "medium";
+        }
 	}
 
-	const res = await fetch(`${endpoint}/openai/deployments/${deployment}/chat/completions?api-version=2024-12-01-preview`, {
+	const res = await fetch(`${endpoint}/openai/deployments/${deployment}/chat/completions?api-version=2025-01-01-preview`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",

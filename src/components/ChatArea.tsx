@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import ProseMarkdown from "@/components/ProseMarkdown";
 import { memo, useState, useRef } from "react";
 import { Trash2, FileText, Plus, RotateCcw } from "lucide-react";
@@ -12,6 +11,7 @@ import Image from "next/image";
 import React from "react";
 
 const MODEL_OPTIONS = [
+	{ value: "gpt-5", label: "GPT-5" },
 	{ value: "gpt-4o", label: "GPT-4o" },
 	{ value: "o4-mini", label: "O4-Mini" },
 ];
@@ -234,8 +234,12 @@ const ChatArea = memo(function ChatArea({
 						</div>
 					)}
 					<div className="flex-1 flex flex-col min-h-0">
-						<ScrollArea className="flex-1 p-4 min-h-0" style={{ minHeight: 0 }} ref={scrollRef}>
-							<div className="flex flex-col gap-4 h-full justify-end">
+						<div 
+							className="flex-1 p-4 min-h-0 overflow-y-auto" 
+							style={{ minHeight: 0 }} 
+							ref={scrollRef}
+						>
+							<div className="flex flex-col gap-4">
 								{currentChat?.messages.map((msg, idx) =>
 									msg.role === "user" ? (
 										<div key={msg.id} className="self-end w-full flex flex-col items-end group">
@@ -306,7 +310,7 @@ const ChatArea = memo(function ChatArea({
 									)
 								)}
 							</div>
-						</ScrollArea>
+						</div>
 						<ChatInput
 							currentChat={currentChat}
 							chats={chats}
